@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const source = fs.readFileSync(`.\\测试文件\\测试文件\\C语言代码\\if语句.txt`, "utf-8");
+const source = fs.readFileSync(`.\\input.cpp`, "utf-8");
 let finalRes = source
 
 // node v12 replaceAll polyfill
@@ -99,7 +99,6 @@ function printMacroInfo(macroState, filename = 'input.cpp') {
       currentMacro += str[i]
     }
   }
-  console.log(JSON.stringify(macroState, null, 2));
 
   printMacroInfo(macroState)
 
@@ -161,6 +160,7 @@ function parseRemoveToSave(strlen, commentRemoveRecord) {
   let firstSlashPosition = -1
   let singleLineCommentSignal = false
   let multiLineCommentSignal = false
+  let constantVal = null
 
   for (let i = 0; i < len; i++) {
     if (singleLineCommentSignal && (str[i] === '\n' || i === len - 1)) {
@@ -177,14 +177,28 @@ function parseRemoveToSave(strlen, commentRemoveRecord) {
         firstSlashPosition = -1
       }
     }
+    else if (constantVal) {
+      if (str[i] === constantVal) {
+        constantVal = null
+      }
+      continue
+    }
     else {
-      if (str[i] === '/' && firstSlashPosition === -1) {
+      if (str[i] === '"' || str[i] === "'") {
+        constantVal = str[i]
+      }
+      else if (str[i] === '/' && firstSlashPosition === -1) {
         firstSlashPosition = i
       }
       else if (firstSlashPosition !== -1 && str[i] === '/') {
         singleLineCommentSignal = true
       }
-      else if (firstSlashPosition !== -1 && str[i] === '*') {
+      else if (
+        firstSlashPosition !== -1 &&
+        str[i] === '*' &&
+        // 单行注释优先级比多行高
+        !singleLineCommentSignal
+      ) {
         multiLineCommentSignal = true
       }
       else if (!(singleLineCommentSignal || multiLineCommentSignal)) {
@@ -194,6 +208,7 @@ function parseRemoveToSave(strlen, commentRemoveRecord) {
   }
 
   const saveCode = parseRemoveToSave(len, commentRemoveRecord)
+
   for (let i = 0; i < saveCode.length; i++) {
     res += str.slice(saveCode[i].start, saveCode[i].end)
   }
