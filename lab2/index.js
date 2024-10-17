@@ -276,7 +276,7 @@ function getAnalyseResult(source) {
 }
 
 function main() {
-  const source = fs.readFileSync(`../测试文件/C语言代码/test.txt`, "utf-8").replaceAll('\r\n', '\n');
+  const source = fs.readFileSync(`./test.txt`, "utf-8").replaceAll('\r\n', '\n');
   const output = printAnalyseList(
     getAnalyseResult(
       source

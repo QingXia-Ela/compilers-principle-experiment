@@ -1,0 +1,32 @@
+void main()
+{
+	int num1,num2,num3;
+	int n1,n2,n3;
+	int max;
+	num1==5
+	5;
+	num2=6;
+	num3=4;
+	if( num1 < num2 )	{
+		max = num2;
+	}
+	else if( num1 < num3 )
+	{
+		max = num3;
+	}
+		else 
+		{
+			max = num1;
+			
+		}
+	if(num2 < num3)
+	{
+		max = num3;
+	}
+	else
+	{
+			max = num2;
+	}
+	printf("\\larger// /* */ num dd is:\*%d*\n"456,max);
+	return 0;
+}
