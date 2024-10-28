@@ -1,32 +1,43 @@
+#include <stdio.h>
 void main()
 {
-	int num1,num2,num3;
-	int n1,n2,n3;
+	int num1, num2, num3;
 	int max;
-	num1==5
-	5;
-	num2=6;
-	num3=4;
-	if( num1 < num2 )	{
+	num1 = 5;
+	num2 = 6;
+	num3 = 4;
+	string test = "test";
+	bool test2 = true;
+	if (num1 < num2) 	{
 		max = num2;
 	}
-	else if( num1 < num3 )
+	else if (num1 < num3) 
 	{
 		max = num3;
 	}
-		else 
-		{
-			max = num1;
-			
-		}
-	if(num2 < num3)
+	else 
+	{
+		max = num1;
+	}
+	if (num2 < num3) 
 	{
 		max = num3;
 	}
-	else
+	else 
 	{
-			max = num2;
+		max = num2;
 	}
-	printf("\\larger// /* */ num dd is:\*%d*\n"456,max);
+	
+	
+			printf('//testse');
+	printf("\\较大的数是：\*%d*\n", max);
+	printf("//\\/*
+					//aaaa
+					\""
+					\*/
+					asjhdvkfj
+					*/较大的数是：\*%d*\n",max);
+	printf('//testse);
+	// 常量范围内注释不该被消除"
 	return 0;
 }

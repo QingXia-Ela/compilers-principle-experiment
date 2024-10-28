@@ -6,6 +6,8 @@ void main()
 	num1 = 5;
 	num2 = 6;
 	num3 = 4;
+	string test = "test";
+	bool test2 = true;
 	if (num1 < num2) // a<b时候，最大值暂定为b
 	{
 		max = num2;
