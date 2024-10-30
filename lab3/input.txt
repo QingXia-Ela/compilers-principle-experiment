@@ -1,12 +1,12 @@
 void main(float a, int b)
 {
-	int num1, num2 = 1, num3;
+	int num1, num2 = 21.45, num3;
 	int max;
 
 	num1 = 5;
-	num2 = (6+7);
-	num3 = num1;
-	
+	num2 = (6+7*8);
+	num3 = (num1 + num2);
+
 	string a = "132";
 	bool test = true;
 

@@ -368,12 +368,19 @@ function startAnalyse(input, expand = DEFAULT_EXPAND) {
     }
     return token
   }
-
+  let start = false
+  let nonTerminalStack = []
   while (stack.length > 0) {
     let top = stack.pop();
     let currentChar = parseUnknownToken2PresetKey(input[index]);
 
+    if (input[index] === 'aaa' || start) {
+      console.log(stack, top, currentChar);
+      start = true
+    }
+
     if (top === currentChar) {
+      nonTerminalStack = []
       // 栈顶符号与当前输入符号相同，匹配成功，读取下一个输入符号
       index++;
     } else if (top === '#') {
@@ -382,9 +389,13 @@ function startAnalyse(input, expand = DEFAULT_EXPAND) {
       // 栈顶符号为非终结符，查找预测分析表
       let production = table[top][currentChar];
 
+      nonTerminalStack.push(top)
       // 应急恢复
       if (backMark && table[top].hasOwnProperty('$')) {
         backMark = false
+        if (start) {
+          console.log('backMark close');
+        }
         continue;
       }
 
@@ -401,14 +412,27 @@ function startAnalyse(input, expand = DEFAULT_EXPAND) {
       else if (table[top].hasOwnProperty('$')) {
         continue;
       } else {
+
         // 回退恢复
-        backMark = true
-        continue;
+        const canIntoEmptyStr = nonTerminalStack.some((nonTerminal) => {
+          return table[nonTerminal].hasOwnProperty('$')
+        })
+
+        if (canIntoEmptyStr) {
+          nonTerminalStack = []
+          if (isNonTerminal(stack[stack.length - 1], GrammarMap)) {
+            stack.pop()
+          }
+          continue;
+        }
+        else {
+          throw new Error(`Unexpected symbol ${input[index]}. Maybe expect ${top}. Token position: ${index}, value: ${input[index]}`);
+        }
       }
     } else {
       console.log(stack);
 
-      throw new Error(`Unexpected symbol ${input[index]}. Maybe expect ${top}. Token position: ${index}`);
+      throw new Error(`Unexpected symbol ${input[index]}. Maybe expect ${top}. Token position: ${index}, value: ${input[index]}`);
     }
   }
 

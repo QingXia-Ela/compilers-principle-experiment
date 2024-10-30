@@ -194,7 +194,13 @@ function getAnalyseResult(source) {
       buffer.push(currentCharacter)
     }
     else if (isSeparator(currentCharacter)) {
-      if (state === CONSTANTS.FLAG.CONSTANT &&
+      if (currentCharacter === '.' && state === CONSTANTS.FLAG.CONSTANT && subState === CONSTANTS.CONSTANT['int']) {
+        subState = CONSTANTS.CONSTANT['float']
+        buffer.push(currentCharacter)
+        nextCharacter(i)
+        continue;
+      }
+      else if (state === CONSTANTS.FLAG.CONSTANT &&
         // if is in string or char, just add to buffer because it is legal in it.
         (subState === CONSTANTS.CONSTANT["'"] || subState === CONSTANTS.CONSTANT["\""])
       ) {
