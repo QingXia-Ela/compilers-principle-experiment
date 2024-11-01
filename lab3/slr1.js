@@ -4,20 +4,47 @@ class Table {
   }
   constructor() { }
   getTarget(k1, k2) {
-    return mapRef.value[k1] && mapRef.value[k1][k2]
+    return this.mapRef.value[k1] && this.mapRef.value[k1][k2]
+  }
+  getColKeys() {
+    return Object.keys(this.mapRef.value)
+  }
+  setColKeys(keys) {
+    keys.forEach(k1 => {
+      if (!this.mapRef.value[k1]) this.mapRef.value[k1] = {}
+    })
   }
   setTarget(k1, k2, v) {
-    mapRef.value[k1] = mapRef.value[k1] || {}
-    mapRef.value[k1][k2] = v
+    this.mapRef.value[k1] = this.mapRef.value[k1] || {}
+    this.mapRef.value[k1][k2] = v
   }
   clean() {
-    mapRef.value = {}
+    this.mapRef.value = {}
   }
   /** @return {Record<string, Record<string, string>>} */
   getCopy() {
-    return JSON.parse(JSON.stringify(mapRef.value))
+    return JSON.parse(JSON.stringify(this.mapRef.value))
   }
 }
+
+/** 
+ * @typedef {{
+ *  [key: string]: {
+  *  symbols: string[],
+  *  position: number,
+  *  productionId: number
+  * }[]}} NodeState
+ * 
+ * @typedef {{
+ *  [key: string]: Node
+ * }} NodeNext
+ * 
+ * @typedef {{
+ *  stateId: number,
+ *  state: NodeState,
+ *  next: NodeNext
+ * }} Node
+ */
 
 /** @type {Record<string, string[]>} */
 let GrammarMap = {}
@@ -25,6 +52,10 @@ let GrammarMap = {}
 let FirstMap = {}
 /** @type {Record<string, string[]>} */
 let FollowMap = {}
+let dfa = {
+  state: {},
+  next: {}
+}
 const ActionMap = new Table()
 const GotoMap = new Table()
 
@@ -48,11 +79,27 @@ function updateGrammarMap(grammar) {
     }
   })
 
+  const nonTerminalCollect = new Set(), terminalCollect = new Set()
+
   for (const [key, val] of Object.entries(GrammarMap)) {
     GrammarMap[key] = Array.from(val)
+
+    val.forEach(item => {
+      item.split(' ').forEach(symbol => {
+        if (symbol.startsWith('<')) {
+          nonTerminalCollect.add(symbol)
+        } else {
+          terminalCollect.add(symbol)
+        }
+      })
+    })
   }
 
-  return GrammarMap
+  return {
+    GrammarMap,
+    nonTerminalCollect,
+    terminalCollect
+  }
 }
 
 function isNonTerminal(symbol, grammar) {
@@ -220,19 +267,24 @@ function updateFollowMap() {
 }
 
 function updateSLR0Map() {
-  /** @type {Record<string, {symbols: string[], position: number}[]>} */
+  /** @type {Record<string, NodeState[]>} */
   const tableMap = {}
+  const productionMap = {}
+  let productionCnt = 0
   for (const nonTerminal in GrammarMap) {
     tableMap[nonTerminal] = GrammarMap[nonTerminal].map((production) => {
       const symbols = production.split(' ');
-      return {
+      const prod = {
         symbols,
-        position: 0
+        position: 0,
+        productionId: productionCnt++
       }
+      productionMap[prod.productionId] = prod
+      return prod
     })
   }
 
-  /** @param {{symbols: string[], position: number}[]} productions */
+  /** @param {NodeState[]} productions */
   function spinCheck(productions) {
     const keyworResult = new Set()
     for (const production1 of productions) {
@@ -248,10 +300,13 @@ function updateSLR0Map() {
     return keyworResult
   }
 
+  let stateCnt = 0
+  const stateMap = {}
+
   /** 
    * 构造当前状态集
    * @param {string} token 
-   * @param {{symbols: string[], position: number}[]} productions
+   * @param {NodeState[]} productions
    */
   function buildState(token, productions) {
     const state = {
@@ -259,6 +314,7 @@ function updateSLR0Map() {
     };
     const next = {}
     const node = {
+      stateId: stateCnt++,
       state,
       next
     }
@@ -298,7 +354,7 @@ function updateSLR0Map() {
         }
       }
     }
-    function buildNextByState(node) {
+    function buildNextByState(/** @type {Node} */node) {
       const { state, next = {} } = node
       for (const token in state) {
         const copyState = JSON.parse(JSON.stringify(state[token]))
@@ -309,6 +365,7 @@ function updateSLR0Map() {
           }
           // 取产生式右部活前缀最后一位
           const symbol = item.symbols[item.position]
+
           item.position++
 
           if (symbol in next) {
@@ -328,16 +385,109 @@ function updateSLR0Map() {
 
     return node
   }
-  const dfa = buildState('<S>', tableMap['<S>'])
 
-  return tableMap
+  return {
+    dfa: buildState('<S>', tableMap['<S>']),
+    productionMap,
+  }
 }
 
+function updateMap(dfa, nonTerminalCollect, terminalCollect) {
+  GotoMap.clean();
+  ActionMap.clean();
+  GotoMap.setColKeys(Array.from(nonTerminalCollect))
+  ActionMap.setColKeys([...Array.from(terminalCollect), '#'])
+
+  const nodeMap = new Map();
+  /** @param {Node} node */
+  function dfs(node) {
+    if (nodeMap.has(node.stateId)) {
+      return;
+    }
+    nodeMap.set(node.stateId, node);
+    // 仅终态规约
+    // E -> αb·
+    if (Object.keys(node.next).length === 0) {
+      const stateKeys = Object.keys(node.state);
+
+      // 无归约-归约冲突，直接设置归约式子
+      if (stateKeys.length === 1) {
+        const state = node.state[stateKeys[0]];
+
+        for (const key of ActionMap.getColKeys()) {
+          ActionMap.setTarget(key, node.stateId, {
+            type: 'production',
+            value: state[0].productionId
+          })
+        }
+      }
+      // todo!: 处理归约-归约冲突
+      return;
+    }
+    // 填表
+    for (const token in node.state) {
+      const productions = node.state[token];
+      for (const production of productions) {
+        const { symbols, productionId, position } = production;
+        const nextToken = symbols[position];
+        const isProductionEnd = position >= symbols.length
+
+        // todo!: 边界情况
+        if (!nextToken) { }
+        // goto，可能无冲突
+        if (isNonTerminal(nextToken, GrammarMap)) {
+          GotoMap.setTarget(nextToken, node.stateId, { type: 'state', value: node.next[nextToken].stateId });
+        }
+        else {
+          // 判断是否有移进-归约
+          // 检测是否被占位了，有占位再进行分类操作
+          // todo!: slr1 移进-归约
+          const target = ActionMap.getTarget(nextToken, node.stateId);
+          if (target) {
+            if (target.type === 'production') {
+            }
+            else if (target.type === 'state') {
+            }
+          }
+          else {
+            // 产生式结尾，直接归约
+            if (isProductionEnd) {
+              const keys = ActionMap.getColKeys()
+              for (const key of keys) {
+                ActionMap.setTarget(nextToken, key, {
+                  type: 'production',
+                  value: productionId
+                })
+              }
+            }
+            else {
+              ActionMap.setTarget(nextToken, node.stateId, {
+                type: 'state',
+                value: node.next[nextToken].stateId
+              })
+            }
+          }
+        }
+      }
+    }
+
+    for (const token in node.next) {
+      const next = node.next[token];
+      dfs(next);
+    }
+  }
+
+  dfs(dfa);
+}
+
+function startAnalyse(input) { }
+
 function updateGrammar(source) {
-  updateGrammarMap(source);
+  const { nonTerminalCollect, terminalCollect } = updateGrammarMap(source);
   updateFirstMap();
   updateFollowMap();
-  updateSLR0Map();
+  const { dfa } = updateSLR0Map();
+  updateMap(dfa, nonTerminalCollect, terminalCollect);
 }
 
 module.exports = {

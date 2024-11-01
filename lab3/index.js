@@ -28,8 +28,8 @@ function slr1Exec(input) {
 
 function main() {
   const input = fs.readFileSync(`./lab3/input.txt`, "utf-8")
-  ll1(input)
-  // slr1Exec(input)
+  // ll1(input)
+  slr1Exec(input)
 }
 
 main()

@@ -144,6 +144,11 @@ const GEQ = 24 // >=
 const LEQ = 25 // <=
 const SELF_ADD = 26 // ++
 const SELF_SUB = 27 // --
+const BIT_AND = 28 // &
+const BIT_XOR = 29 // ^
+const BIT_OR = 30 // |
+const LSHIFT = 31 // <<
+const RSHIFT = 32 // >>
 const OPERATOR_DESC = "运算符"
 const OPERATOR = Object.freeze({
   "+": ADD,
@@ -173,6 +178,11 @@ const OPERATOR = Object.freeze({
   "<=": LEQ,
   "++": SELF_ADD,
   "--": SELF_SUB,
+  "&": BIT_AND,
+  "^": BIT_XOR,
+  "|": BIT_OR,
+  "<<": LSHIFT,
+  ">>": RSHIFT,
 
   OPERATOR_FLAG,
   OPERATOR_DESC,
@@ -188,6 +198,7 @@ const LBRACKET = 5 // [
 const RBRACKET = 6 // ]
 const COMMA = 7 // ,
 const SEMICOLON = 8 // ;
+const DOT = 9 // .
 
 const SEPARATOR_DESC = "限界符"
 const SEPARATOR = Object.freeze({
@@ -199,6 +210,7 @@ const SEPARATOR = Object.freeze({
   "]": RBRACKET,
   ",": COMMA,
   ";": SEMICOLON,
+  ".": DOT,
 
   SEPARATOR_FLAG,
   SEPARATOR_DESC,
